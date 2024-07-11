@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      html{
+        width: 50%;
+        padding: 10px;
+        margin: auto;
+        text-align: center;
+      }
+      table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        text-align: center;
+        padding: 10px;
+        margin: auto;
+        width: 70%;
+      }
+
+      td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+      }
+
+      tr:nth-child(even) {
+        background-color: #dddddd;
+      }
+      .evaluationMetrics {
+        margin-top: 20px;
+        font-weight: bold;
+        color: red;
+      }
+    </style>
+</head>
+<body>
+  <h1>Results from detection</h1>
+  <div id="data"></div>
+  <div id="resultsTable"></div>
+  <canvas id="myChart" width="400" height="400"></canvas>
+  <br>
+  <div id="evaluationMetrics"></div>
+  <br>
+  <button onclick="window.location.href='index.html'">Go back home</button>
+  <button onclick="window.location.href='page1.html'">Go to try model</button>
+  <button onclick="window.location.href='page2.html'">Go to results</button>
+</body>
+<script>
+  let table = document.createElement('table');
+  let thead = document.createElement('thead');
+  let tbody = document.createElement('tbody');
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  document.getElementById('resultsTable').appendChild(table);
+
+  let headers = ['Number', 'Prediction', 'Confidence'];
+  let tr = document.createElement('tr');
+  headers.forEach(header => {
+    let th = document.createElement('th');
+    th.textContent = header;
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+
+  // Declare a variable to store the chart outside the updateTable function
+  let myChart;
+  
+  function updateTable() {
+    // Clear the tbody
+    while (tbody.firstChild) {
+      tbody.removeChild(tbody.firstChild);
+    }
+
+    // Get the new data
+    let data = JSON.parse(localStorage.getItem('data'));
+
+    // Create a new row for each item in the data array
+    data.forEach((item, index) => {
+      tr = document.createElement('tr');
+
+      let td = document.createElement('td');
+      td.textContent = index + 1; // Add a list of numbers
+      tr.appendChild(td);
+
+      td = document.createElement('td');
+      td.textContent = item.prediction;
+      tr.appendChild(td);
+
+      td = document.createElement('td');
+      td.textContent = item.confidence;
+      tr.appendChild(td);
+
+      tbody.appendChild(tr);
+    });
+
+    // Get the predictions and labels from local storage
+    let predictions = JSON.parse(localStorage.getItem('data'));
+    let labels = JSON.parse(localStorage.getItem('labels'));
+
+    // // Initialize counters for TP, FP, and FN
+    // let TP = 0, FP = 0, FN = 0;
+
+    // // Calculate TP, FP, and FN
+    // for (let i = 0; i < predictions.length; i++) {
+    //   if (predictions[i].prediction === labels[i]) {
+    //     TP++;
+    //   } else {
+    //     FP++;
+    //   }
+    //   if (!predictions.some(prediction => prediction.prediction === labels[i])) {
+    //     FN++;
+    //   }
+    // }
+
+    // // Calculate precision, recall, and F1 score
+    // let precision = TP / (TP + FP);
+    // let recall = TP / (TP + FN);
+    // let f1Score = 2 * (precision * recall) / (precision + recall);
+
+    //  // Log the evaluation metrics
+    //  console.log(`Precision: ${precision}`);
+    // console.log(`Recall: ${recall}`);
+    // console.log(`F1 Score: ${f1Score}`);
+    
+    // Initialize an object to store the evaluation metrics for each label
+    
+    //
+    let metrics = {};
+
+    // Calculate TP, FP, and FN for each label
+    labels.forEach(label => {
+    let TP = predictions.filter((prediction, i) => prediction.prediction === label && prediction.prediction === labels[i]).length;
+    let FP = predictions.filter((prediction, i) => prediction.prediction !== label && prediction.prediction === labels[i]).length;
+    let FN = predictions.filter((prediction, i) => prediction.prediction === label && prediction.prediction !== labels[i]).length;
+
+    // Calculate precision, recall, and F1 score for each label
+    let precision = TP / (TP + FP);
+    let recall = TP / (TP + FN);
+    let f1Score = 2 * (precision * recall) / (precision + recall);
+
+    // Store the evaluation metrics for each label
+    metrics[label] = { precision, recall, f1Score };
+  });
+
+   // If a chart already exists, destroy it
+   if (myChart) {
+    myChart.destroy();
+  }
+
+   // Create the bar chart
+   let ctx = document.getElementById('myChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(metrics),
+      datasets: [{
+        label: 'Precision',
+        data: Object.values(metrics).map(metric => metric.precision),
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }, {
+        label: 'Recall',
+        data: Object.values(metrics).map(metric => metric.recall),
+        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 1
+      },
+      {
+        label: 'F1 Score',
+        data: Object.values(metrics).map(metric => metric.f1Score),
+        backgroundColor: 'rgba(255, 206, 86, 0.2)',
+        borderColor: 'rgba(255, 206, 86, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+  }
+
+  // Update the table every second (2000 milliseconds)
+  setInterval(updateTable, 2000);
+</script>
+</html>
