@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
       html{
         width: 50%;
@@ -68,6 +69,8 @@
 
   // Declare a variable to store the chart outside the updateTable function
   let myChart;
+
+  Chart.register(ChartDataLabels);
   
   function updateTable() {
     // Clear the tbody
@@ -101,34 +104,6 @@
     let predictions = JSON.parse(localStorage.getItem('data'));
     let labels = JSON.parse(localStorage.getItem('labels'));
 
-    // // Initialize counters for TP, FP, and FN
-    // let TP = 0, FP = 0, FN = 0;
-
-    // // Calculate TP, FP, and FN
-    // for (let i = 0; i < predictions.length; i++) {
-    //   if (predictions[i].prediction === labels[i]) {
-    //     TP++;
-    //   } else {
-    //     FP++;
-    //   }
-    //   if (!predictions.some(prediction => prediction.prediction === labels[i])) {
-    //     FN++;
-    //   }
-    // }
-
-    // // Calculate precision, recall, and F1 score
-    // let precision = TP / (TP + FP);
-    // let recall = TP / (TP + FN);
-    // let f1Score = 2 * (precision * recall) / (precision + recall);
-
-    //  // Log the evaluation metrics
-    //  console.log(`Precision: ${precision}`);
-    // console.log(`Recall: ${recall}`);
-    // console.log(`F1 Score: ${f1Score}`);
-    
-    // Initialize an object to store the evaluation metrics for each label
-    
-    //
     let metrics = {};
 
     // Calculate TP, FP, and FN for each label
@@ -151,8 +126,8 @@
     myChart.destroy();
   }
 
-   // Create the bar chart
-   let ctx = document.getElementById('myChart').getContext('2d');
+  // Create the bar chart
+  let ctx = document.getElementById('myChart').getContext('2d');
   new Chart(ctx, {
     type: 'bar',
     data: {
@@ -183,12 +158,53 @@
         y: {
           beginAtZero: true
         }
+      },
+      plugins: {
+        title: {
+          display: true,
+          text: 'Evaluation Metrics by Label'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label;
+              let value = context.parsed.y;
+              let total = Object.values(metrics).reduce((acc, metric) => acc + metric[label], 0);
+              return `${label}: ${value} (Total: ${total})`;
+            }
+          }
+        }, 
+        datalabels: {
+          color: '#000',
+          font: {
+            weight: 'bold'
+          },
+          formatter: function(value, context) {
+            return value.toFixed(2);
+          }
+        }
       }
     }
   });
   }
-
+  // Function to update chart data
+  function updateChartData() {
+    let chartData = myChart.data.datasets;
+    chartData.forEach(dataset => {
+      let label = dataset.label;
+      let data = dataset.data;
+      let total = data.reduce((acc, value) => acc + value, 0);
+      // Assuming you want to update the label with the new total
+      dataset.label = `${label.split(' (')[0]} (${total})`;
+    });
+  }
+  
+  // Update the chart every second (1000 milliseconds)
+  setInterval(updateChartData, 1000);
+  
   // Update the table every second (2000 milliseconds)
   setInterval(updateTable, 2000);
+  myChart.update();
 </script>
+</html>t>
 </html>
